@@ -5,6 +5,7 @@
 open System
 open MathNet.Numerics.Distributions
 open MathNet.Numerics.Statistics
+open MathNet.Numerics.Random
 
 let callPayoff strike price = 
     max(price - strike) 0.0
@@ -34,8 +35,9 @@ let priceEuropeanCallAnalytic s0 strike r T sigma =
 
 // Monte Carlo pricing
 
-let priceEuropeanCallMC s0 strike r T sigma nPaths nSteps =
-    let normal = new Normal(0.0, 1.0)
+let priceEuropeanCallMC s0 strike r T sigma (seed:int) nSteps nPaths   =
+    let randomSource = new MersenneTwister(seed)
+    let normal = new Normal(0.0, 1.0, randomSource)
     let dt = T / float nSteps
     let payoffs = seq { for n in 1 .. nPaths do 
                         let assetPath = getAssetPath s0 r dt sigma normal nSteps |> Seq.toList
@@ -47,9 +49,9 @@ let priceEuropeanCallMC s0 strike r T sigma nPaths nSteps =
     let stddevMC = df * payoffs.StandardDeviation() / sqrt(float nPaths)
     (priceMC, stddevMC)
 
-let europeanCallMC s0 strike r T sigma nPaths nSteps =    
-    let result = priceEuropeanCallMC s0 strike r T sigma nPaths nSteps
-    printfn "European Call (using MC) mean:%f stddev:%f" (fst result) (snd result)
+let europeanCallMC s0 strike r T sigma (seed:int) nSteps nPaths   =    
+    let result = priceEuropeanCallMC s0 strike r T sigma seed nSteps nPaths
+    printfn "European Call  mean:%f stddev:%f (using MC, n = %i)" (fst result) (snd result) (nPaths)
 
 let europeanCallAnalytic s0 strike r T sigma =
     let result = priceEuropeanCallAnalytic s0 strike r T sigma
@@ -62,10 +64,11 @@ let main argv =
     let r = 0.02
     let T = 1.0
     let sigma = 0.2
-    let nPaths = 10_000_000
+    let nPaths = [| 10; 100; 1_000; 10_000; 100_000; 1_000_000 |]
     let nSteps = 12
+    let seed = 9318669
 
     
-    europeanCallMC s0 strike r T sigma nPaths nSteps
+    nPaths |> Array.map (europeanCallMC s0 strike r T sigma seed nSteps) |> ignore
     europeanCallAnalytic s0 strike r T sigma
     0 // return an integer exit code
