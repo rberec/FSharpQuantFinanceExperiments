@@ -6,6 +6,7 @@ open System
 open MathNet.Numerics.Distributions
 open MathNet.Numerics.Statistics
 open MathNet.Numerics.Random
+open RandomProcess
 
 let callPayoff strike price = 
     max(price - strike) 0.0
@@ -49,12 +50,12 @@ let priceEuropeanCallAnalytic s0 strike r T sigma =
 
 // Monte Carlo pricing
 
-let priceOptionMC option s0 r T sigma (seed:int) nSteps nPaths =
+let priceOptionMC option randomProcess r T (seed:int) nSteps nPaths =
     let randomSource = new MersenneTwister(seed)
     let normal = new Normal(0.0, 1.0, randomSource)
     let dt = T / float nSteps
     let payoffs = seq<double> { for n in 1 .. nPaths do 
-                                let assetPath = getAssetPath s0 r dt sigma normal nSteps |> Seq.toList
+                                let assetPath = randomProcess dt normal nSteps
                                 yield assetPath |> option
                               }
 
@@ -64,14 +65,14 @@ let priceOptionMC option s0 r T sigma (seed:int) nSteps nPaths =
     (priceMC, stddevMC)
 
 
-let priceEuropeanCallMC s0 strike r T sigma (seed:int) nSteps nPaths =
+let priceEuropeanCallMC randomProcess strike r T (seed:int) nSteps nPaths =
     let option = europeanCallPayoff strike
-    priceOptionMC option s0 r T sigma seed nSteps nPaths
+    priceOptionMC option randomProcess r T seed nSteps nPaths
 
 
-let priceUpOutEuropeanCallMC s0 strike barier r T sigma (seed:int) nSteps nPaths = 
+let priceUpOutEuropeanCallMC randomProcess strike barier r T (seed:int) nSteps nPaths = 
     let option = upOutEuropeanCallPayoff strike barier
-    priceOptionMC option s0 r T sigma seed nSteps nPaths
+    priceOptionMC option randomProcess r T seed nSteps nPaths
   
 
 let runAndPrintResultMC pricer nPaths =
@@ -95,13 +96,15 @@ let main argv =
     let nSteps = 12
     let seed = 9318669
 
+    let randomProcess = RandomProcess.blackScholesProcess s0 r sigma
+
     printfn "Test of European Call Option:"
-    let europeanCallTest = priceEuropeanCallMC s0 strike r T sigma seed nSteps
+    let europeanCallTest = priceEuropeanCallMC randomProcess strike r T seed nSteps
     nPaths |> Array.map (runAndPrintResultMC europeanCallTest) |> ignore
     europeanCallAnalytic s0 strike r T sigma
 
     printfn "Test of European Up and Out Call Option:"
     let barier = 120.0
-    let europeanUpOutCallTest = priceUpOutEuropeanCallMC s0 strike barier r T sigma seed nSteps
+    let europeanUpOutCallTest = priceUpOutEuropeanCallMC randomProcess strike barier r T seed nSteps
     nPaths |> Array.map (runAndPrintResultMC europeanUpOutCallTest) |> ignore
     0 // return an integer exit code
