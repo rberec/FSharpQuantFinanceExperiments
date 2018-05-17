@@ -6,6 +6,7 @@ open System
 open MathNet.Numerics.Distributions
 open MathNet.Numerics.Statistics
 open MathNet.Numerics.Random
+open Utils
 open RandomProcess
 
 let callPayoff strike price = 
@@ -26,26 +27,6 @@ let upOutPayoff payoff barier assetPath =
 
 let upOutEuropeanCallPayoff strike barier =
     upOutPayoff (europeanCallPayoff strike) barier 
-
-    
-let getAssetPath s0 r dt sigma (normal:Normal) nSteps =
-    Seq.unfold (fun s -> let sNew = (s * exp(((r - (0.5 * sigma * sigma)) * dt) + (sigma * sqrt(dt) * normal.Sample())))
-                         Some(s, sNew)) s0
-    |> Seq.take (nSteps + 1)
-
-
-let phi x = 
-    let normal = new Normal()
-    normal.CumulativeDistribution(x)
-
-
-let priceEuropeanCallAnalytic s0 strike r T sigma =
-    let discountedK = strike * exp(-r * T)
-    let totalVolatility = sigma * sqrt(T)
-    let d_ = log(s0 / discountedK) / totalVolatility
-    let d_plus = d_ + (0.5 * totalVolatility)
-    let d_minus = d_ - (0.5 * totalVolatility)
-    (s0 * phi(d_plus)) - (discountedK * phi(d_minus))
 
 
 // Monte Carlo pricing
@@ -90,13 +71,15 @@ let main argv =
     let s0 = 100.0
     let strike = 100.0
     let r = 0.02
+    let dvd = 0.0
+    let mpr = 0.0
     let T = 1.0
     let sigma = 0.2
     let nPaths = [| 10; 100; 1_000; 10_000; 100_000; 1_000_000 |]
     let nSteps = 12
     let seed = 9318669
 
-    let randomProcess = RandomProcess.blackScholesProcess s0 r sigma
+    let randomProcess = blackScholesProcess s0 r dvd mpr sigma
 
     printfn "Test of European Call Option:"
     let europeanCallTest = priceEuropeanCallMC randomProcess strike r T seed nSteps
