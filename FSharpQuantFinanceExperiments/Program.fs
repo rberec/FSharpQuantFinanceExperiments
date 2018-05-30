@@ -6,8 +6,10 @@ open System
 open MathNet.Numerics.Distributions
 open MathNet.Numerics.Statistics
 open MathNet.Numerics.Random
+open FSharp.Charting
 open Utils
 open RandomProcess
+open HedgingSimulation
 
 let callPayoff strike price = 
     max(price - strike) 0.0
@@ -61,8 +63,8 @@ let runAndPrintResultMC pricer nPaths =
     printfn "Option price  mean:%f stddev:%f (using MC, n = %i)" (fst result) (snd result) (nPaths)
 
 
-let europeanCallAnalytic s0 strike r T sigma =
-    let result = priceEuropeanCallAnalytic s0 strike r T sigma
+let europeanCallAnalytic s0 strike r dvd T sigma =
+    let result = priceEuropeanCallAnalytic s0 strike r dvd T sigma
     printfn "European Call (analytic) %f" result
 
 
@@ -79,15 +81,21 @@ let main argv =
     let nSteps = 12
     let seed = 9318669
 
+    let nStepsHedge = 1000
+    let paths = [for i in [1..10000] -> getPrtfValues (blackScholesDeltaHedging s0 strike sigma r dvd mpr T (new Normal(0.0, 1.0, new MersenneTwister(seed + i))) nStepsHedge) ]
+
+    paths |> List.map Chart.FastLine |> Chart.Combine |> Chart.Show
+    
     let randomProcess = blackScholesProcess s0 r dvd mpr sigma
 
     printfn "Test of European Call Option:"
     let europeanCallTest = priceEuropeanCallMC randomProcess strike r T seed nSteps
     nPaths |> Array.map (runAndPrintResultMC europeanCallTest) |> ignore
-    europeanCallAnalytic s0 strike r T sigma
+    europeanCallAnalytic s0 strike r dvd T sigma
 
     printfn "Test of European Up and Out Call Option:"
     let barier = 120.0
     let europeanUpOutCallTest = priceUpOutEuropeanCallMC randomProcess strike barier r T seed nSteps
     nPaths |> Array.map (runAndPrintResultMC europeanUpOutCallTest) |> ignore
+
     0 // return an integer exit code
