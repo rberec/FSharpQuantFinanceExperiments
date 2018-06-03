@@ -1,8 +1,4 @@
-﻿// Learn more about F# at http://fsharp.org
-// See the 'F# Tutorial' project for more help.
-
-
-open System
+﻿open System
 open MathNet.Numerics.Distributions
 open MathNet.Numerics.Statistics
 open MathNet.Numerics.Random
@@ -34,6 +30,10 @@ let upOutEuropeanCallPayoff strike barier =
 // Monte Carlo pricing
 
 let priceOptionMC option randomProcess r T (seed:int) nSteps nPaths =
+    if (T < 0.0) then invalidArg "T" (sprintf "Negative expiry %f." T)
+    if (nSteps < 0) then invalidArg "nSteps" (sprintf "Negative nSteps %d." nSteps)
+    if (nPaths < 0) then invalidArg "nPaths" (sprintf "Negative nPaths %d." nPaths)
+
     let randomSource = new MersenneTwister(seed)
     let normal = new Normal(0.0, 1.0, randomSource)
     let dt = T / float nSteps
@@ -64,7 +64,7 @@ let runAndPrintResultMC pricer nPaths =
 
 
 let europeanCallAnalytic s0 strike r dvd T sigma =
-    let result = priceEuropeanCallAnalytic s0 strike r dvd T sigma
+    let result = priceEuropeanCallAnalyticBS strike sigma r dvd s0 T
     printfn "European Call (analytic) %f" result
 
 

@@ -18,7 +18,7 @@ let moneyDvdReturn prtf s r dvd dt =
     prtf.cash * (exp(r*dt) - 1.) + prtf.shares * s * (exp(dvd*dt) - 1.)
 
 let rebalance strike sigma r dvd s T prtf dt=
-    let newDelta = delta strike sigma r dvd s T
+    let newDelta = deltaAnalyticBS strike sigma r dvd s T
     let prtfVal = (portfolioValue prtf s) + (moneyDvdReturn prtf s r dvd dt)
     {shares = newDelta;
      cash =  prtfVal - newDelta * s;
