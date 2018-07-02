@@ -2,7 +2,6 @@
 open MathNet.Numerics.Distributions
 open MathNet.Numerics.Statistics
 open MathNet.Numerics.Random
-open FSharp.Charting
 open Utils
 open RandomProcess
 open HedgingSimulation
@@ -81,11 +80,9 @@ let main argv =
     let nSteps = 12
     let seed = 9318669
 
-    let nStepsHedge = 1000
-    let paths = [for i in [1..10000] -> getPrtfValues (blackScholesDeltaHedging s0 strike sigma r dvd mpr T (new Normal(0.0, 1.0, new MersenneTwister(seed + i))) nStepsHedge) ]
-
-    paths |> List.map Chart.FastLine |> Chart.Combine |> Chart.Show
+    testBasicDeltaHedging()
     
+
     let randomProcess = blackScholesProcess s0 r dvd mpr sigma
 
     printfn "Test of European Call Option:"
